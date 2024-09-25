@@ -56,7 +56,7 @@ def friedman_test(ciphertext):
     return round(key_length_estimate)
 
 
-print(friedman_test(text_to_incrypt))
+# print(friedman_test(text_to_incrypt))
 # Застосування тесту Касіскі потребує реалізації пошуку повторів і аналізу їх відстаней
 # Алгоритм не включений, оскільки це складна операція для ручної реалізації
 
@@ -128,47 +128,60 @@ decrypted_text = double_transposition_decrypt(ciphertext, key1, key2)
 import math
 
 
-def create_table(text, key):
-    num_rows = math.ceil(len(text) / len(key))
-    table = [["" for _ in range(len(key))] for _ in range(num_rows)]
+# Функція для додавання заповнювачів, щоб довжина тексту ділилася на кількість стовпців
+def pad_text(text, num_cols):
+    padding_size = num_cols - (len(text) % num_cols)
+    if padding_size != num_cols:
+        text += " " * padding_size  # Додаємо пробіли як заповнювач
+    return text
 
+
+# Функція для шифрування (записуємо текст в таблицю по рядках і зчитуємо по стовпцях)
+def table_encrypt(text, key):
+    num_cols = len(key)
+    num_rows = math.ceil(len(text) / num_cols)
+
+    # Додаємо заповнювачі до тексту
+    text = pad_text(text, num_cols)
+
+    # Створюємо таблицю
+    table = [["" for _ in range(num_cols)] for _ in range(num_rows)]
     index = 0
+
+    # Заповнюємо таблицю текстом по рядках
     for i in range(num_rows):
-        for j in range(len(key)):
+        for j in range(num_cols):
             if index < len(text):
                 table[i][j] = text[index]
                 index += 1
 
-    return table
-
-
-def read_table_by_columns(table, key):
+    # Сортуємо ключ для правильного порядку стовпців
     sorted_key = sorted(list(key))
-    result = ""
 
+    # Читаємо текст по стовпцях відповідно до відсортованого ключа
+    ciphertext = ""
     for k in sorted_key:
         col_index = key.index(k)
-        for row in table:
-            if row[col_index]:
-                result += row[col_index]
+        for i in range(num_rows):
+            if table[i][col_index] != "":
+                ciphertext += table[i][col_index]
 
-    return result
-
-
-def table_encrypt(text, key):
-    table = create_table(text, key)
-    return read_table_by_columns(table, key)
+    return ciphertext
 
 
+# Функція для дешифрування (записуємо текст в таблицю по стовпцях і зчитуємо по рядках)
 def table_decrypt(ciphertext, key):
-    num_rows = math.ceil(len(ciphertext) / len(key))
     num_cols = len(key)
+    num_rows = math.ceil(len(ciphertext) / num_cols)
+
+    # Створюємо порожню таблицю для дешифрування
+    table = [["" for _ in range(num_cols)] for _ in range(num_rows)]
+
+    # Сортуємо ключ
     sorted_key = sorted(list(key))
 
-    # Створити таблицю для зберігання шифрованого тексту
-    table = [["" for _ in range(num_cols)] for _ in range(num_rows)]
+    # Заповнюємо таблицю за стовпцями відповідно до відсортованого ключа
     index = 0
-
     for k in sorted_key:
         col_index = key.index(k)
         for i in range(num_rows):
@@ -176,21 +189,27 @@ def table_decrypt(ciphertext, key):
                 table[i][col_index] = ciphertext[index]
                 index += 1
 
-    # Зчитати текст за рядками
-    result = ""
-    for row in table:
-        result += "".join(row)
+    # Зчитуємо таблицю по рядках для отримання початкового тексту
+    decrypted_text = ""
+    for i in range(num_rows):
+        for j in range(num_cols):
+            if table[i][j] != "":
+                decrypted_text += table[i][j]
 
-    return result
+    return decrypted_text.strip()  # Видаляємо зайві пробіли після дешифрування
 
 
 # Приклад використання
 key = "MATRIX"
-ciphertext = table_encrypt(text_to_incrypt, key)
-decrypted_text = table_decrypt(ciphertext, key)
 
+# Шифрування
+# ciphertext = table_encrypt(text_to_incrypt, key)
 # print("Зашифрований текст:", ciphertext)
+
+# Дешифрування
+# decrypted_text = table_decrypt(ciphertext, key)
 # print("Розшифрований текст:", decrypted_text)
+
 
 # Шифрування тексту спочатку Віженером, потім Табличним шифром
 vigenere_key = "CRYPTO"
@@ -200,13 +219,13 @@ vigenere_encrypted = vigenere_encrypt(
     text_to_incrypt, generate_key(text_to_incrypt, vigenere_key)
 )
 table_encrypted = table_encrypt(vigenere_encrypted, table_key)
-# print("Текст, зашифрований Віженером, потім Табличним шифром:", table_encrypted)
+print("Текст, зашифрований Віженером, потім Табличним шифром:", table_encrypted)
 
 # Дешифрування тексту у зворотному порядку
 table_decrypted = table_decrypt(table_encrypted, table_key)
 vigenere_decrypted = vigenere_decrypt(
     table_decrypted, generate_key(table_decrypted, vigenere_key)
 )
-# print("Розшифрований текст:", vigenere_decrypted)
+print("Розшифрований текст:", vigenere_decrypted)
 
 f.close()
